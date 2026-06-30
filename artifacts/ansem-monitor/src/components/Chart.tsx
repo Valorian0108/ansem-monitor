@@ -5,24 +5,21 @@ import { PricePoint } from '@/hooks/useAnsemData';
 interface ChartProps {
   data: PricePoint[];
   volumeRatio: number; // 0 to 1, used for glow intensity
+  className?: string;  // outer container override
 }
 
-export function AnsemChart({ data, volumeRatio }: ChartProps) {
+export function AnsemChart({ data, volumeRatio, className }: ChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
-    // If we only have 1 point, duplicate it so we can draw a line
     if (data.length === 1) {
       return [
         { ...data[0], time: data[0].time - 15000 },
         data[0]
       ];
     }
-    
     return data;
   }, [data]);
 
-  // Calculate min and max for reference lines
   const { min, max } = useMemo(() => {
     if (chartData.length === 0) return { min: 0, max: 100 };
     const prices = chartData.map(d => d.price);
@@ -39,8 +36,10 @@ export function AnsemChart({ data, volumeRatio }: ChartProps) {
 
   if (chartData.length === 0) return null;
 
+  const containerClass = className ?? 'w-full h-[35vh] absolute bottom-0 left-0 right-0 overflow-hidden pointer-events-none z-10';
+
   return (
-    <div className="w-full h-[35vh] absolute bottom-0 left-0 right-0 overflow-hidden pointer-events-none z-10">
+    <div className={containerClass}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
           <defs>
@@ -52,9 +51,9 @@ export function AnsemChart({ data, volumeRatio }: ChartProps) {
               <feDropShadow dx="0" dy="0" stdDeviation={glowSize} floodColor="#39FF14" floodOpacity="1" />
             </filter>
           </defs>
-          
+
           <YAxis domain={[min, max]} hide />
-          
+
           <ReferenceLine y={min + (max - min) * 0.2} stroke="rgba(255,255,255,0.03)" strokeWidth={1} />
           <ReferenceLine y={min + (max - min) * 0.4} stroke="rgba(255,255,255,0.03)" strokeWidth={1} />
           <ReferenceLine y={min + (max - min) * 0.6} stroke="rgba(255,255,255,0.03)" strokeWidth={1} />
