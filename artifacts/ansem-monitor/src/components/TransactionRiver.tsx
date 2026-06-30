@@ -38,6 +38,7 @@ export function TransactionRiver({ transactions, onBlackBullPulse }: Transaction
     <div className="absolute right-0 top-0 bottom-0 w-[280px] bg-[#020303]/80 border-l border-[#1a2a1a] z-30 flex flex-col pt-[5rem]">
       <div className="px-4 pb-2 border-b border-[#1a2a1a] mb-2 flex-shrink-0">
         <span className="font-mono text-[10px] text-[#3d5c3d] tracking-widest uppercase">Live Tape</span>
+        <span className="font-mono text-[9px] text-[#3d5c3d]/50 ml-2 normal-case tracking-normal">(simulated)</span>
       </div>
       
       <div className="flex-1 overflow-y-auto no-scrollbar relative flex flex-col justify-start">

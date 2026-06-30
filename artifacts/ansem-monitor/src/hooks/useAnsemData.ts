@@ -79,13 +79,21 @@ export function useAnsemData() {
   const [priceDirection, setPriceDirection] = useState<'UP' | 'DOWN' | 'NEUTRAL'>('NEUTRAL');
 
   const fetchInterval = useRef<NodeJS.Timeout | null>(null);
+  // Monotonic request id — only the latest response is applied; stale ones are discarded.
+  const requestIdRef = useRef<number>(0);
 
   const fetchData = async () => {
+    const myRequestId = ++requestIdRef.current;
+    const controller = new AbortController();
+
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(API_URL, { signal: controller.signal });
       if (!res.ok) throw new Error('API fetch failed');
       const json = await res.json();
-      
+
+      // Discard stale responses that arrived out of order
+      if (myRequestId !== requestIdRef.current) return;
+
       if (!json.pairs || json.pairs.length === 0) {
         throw new Error('No pairs found');
       }
@@ -107,7 +115,10 @@ export function useAnsemData() {
         pairAddress: pair.pairAddress ?? '',
       };
 
-      const currentPriceNum = parseFloat(pair.priceUsd);
+      // Use the sanitized priceUsd string (guaranteed '0' fallback) for numeric ops.
+      // Reject non-finite values so NaN never enters chart history.
+      const currentPriceNum = parseFloat(newData.priceUsd);
+      if (!Number.isFinite(currentPriceNum)) throw new Error('Invalid price from API');
 
       setData((prevData) => {
         if (prevData) {
@@ -128,7 +139,8 @@ export function useAnsemData() {
         return newHistory;
       });
 
-      // Generate new transactions based on the data
+      // Simulated transactions derived from real aggregate buy/sell ratio and volume.
+      // Individual trades are not available from the DexScreener public API.
       const newTxns = generateRandomTxns(newData);
       setTransactions((prev) => {
         const merged = [...newTxns, ...prev];
@@ -138,6 +150,7 @@ export function useAnsemData() {
       setLastUpdated(Date.now());
       setError(false);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return; // clean cancellation
       console.error(err);
       setError(true);
     }
@@ -147,10 +160,10 @@ export function useAnsemData() {
     fetchData();
     fetchInterval.current = setInterval(fetchData, POLLING_INTERVAL);
 
-    // Initial dummy history to make the chart look nice on first load until real data fills in over time
-    // We'll populate some flat lines so the chart isn't empty.
     return () => {
       if (fetchInterval.current) clearInterval(fetchInterval.current);
+      // Invalidate any in-flight request so its setState calls are ignored
+      requestIdRef.current++;
     };
   }, []);
 
