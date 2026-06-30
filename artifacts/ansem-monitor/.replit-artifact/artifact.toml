@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "$ANSEM Monitor"
+version = "1.0.0"
+id = "artifacts/ansem-monitor"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19513
+
+[services.development]
+run = "pnpm --filter @workspace/ansem-monitor run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ansem-monitor", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ansem-monitor/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19513"
+BASE_PATH = "/"
